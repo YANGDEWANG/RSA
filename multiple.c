@@ -3,6 +3,7 @@
 #include <time.h>
 #include <string.h>
 #include <limits.h>
+#include "multiple.h"
 
 /* Accuracy with which we test for prime numbers using Solovay-Strassen algorithm.
  * 20 Tests should be sufficient for most largish primes */
@@ -17,60 +18,34 @@
 #define BIGNUM_CAPACITY 20
 
 /* Radix and halfradix. These should be changed if the limb/word type changes */
-#define RADIX 4294967296UL
-#define HALFRADIX 2147483648UL
+#define RADIX       (BN_UINT_MAX + 1UL)
+#define HALFRADIX   (RADIX / 2)
 
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
-/**
- * Basic limb type. Note that some calculations rely on unsigned overflow wrap-around of this type.
- * As a result, only unsigned types should be used here, and the RADIX, HALFRADIX above should be
- * changed as necessary. Unsigned integer should probably be the most efficient word type, and this
- * is used by GMP for example.
- */
-typedef unsigned int word;
-
-/**
- * Structure for representing multiple precision integers. This is a base "word" LSB
- * representation. In this case the base, word, is 2^32. Length is the number of words
- * in the current representation. Length should not allow for trailing zeros (Things like
- * 000124). The capacity is the number of words allocated for the limb data.
- */
-typedef struct _bignum {
-	int length;
-	int capacity;
-	word* data;
-} bignum;
-
-/**
- * Some forward delcarations as this was requested to be a single file.
- * See specific functions for explanations.
- */
-void bignum_iadd(bignum* source, bignum* add);
-void bignum_add(bignum* result, bignum* b1, bignum* b2);
-void bignum_isubtract(bignum* source, bignum* add);
-void bignum_subtract(bignum* result, bignum* b1, bignum* b2);
-void bignum_imultiply(bignum* source, bignum* add);
-void bignum_multiply(bignum* result, bignum* b1, bignum* b2);
-void bignum_idivide(bignum* source, bignum* div);
-void bignum_idivider(bignum* source, bignum* div, bignum* remainder);
-void bignum_remainder(bignum* source, bignum *div, bignum* remainder);
-void bignum_imodulate(bignum* source, bignum* modulus);
-void bignum_divide(bignum* quotient, bignum* remainder, bignum* b1, bignum* b2);
 
 /**
  * Save some frequently used bigintegers (0 - 10) so they do not need to be repeatedly
  * created. Used as, NUMS[5] = bignum("5"), etc..
  */
-word DATA0[1] = {0}; word DATA1[1] = {1}; word DATA2[1] = {2};
-word DATA3[1] = {3}; word DATA4[1] = {4}; word DATA5[1] = {5};
-word DATA6[1] = {6}; word DATA7[1] = {7}; word DATA8[1] = {8};
-word DATA9[1] = {9}; word DATA10[1] = {10};
-bignum NUMS[11] = {{1, 1, DATA0},{1, 1, DATA1},{1, 1, DATA2},
-                   {1, 1, DATA3},{1, 1, DATA4},{1, 1, DATA5},
-                   {1, 1, DATA6},{1, 1, DATA7},{1, 1, DATA8},
-                   {1, 1, DATA9},{1, 1, DATA10}};
-
+const word DATA0[1] = {0};
+const word DATA1[1] = {1};
+const word DATA2[1] = {2};
+const word DATA3[1] = {3};
+const word DATA4[1] = {4};
+const word DATA5[1] = {5};
+const word DATA6[1] = {6};
+const word DATA7[1] = {7};
+const word DATA8[1] = {8};
+const word DATA9[1] = {9};
+const word DATA10[1] = {10};
+const bignum NUMSC[11] = {
+        {1, 1, (void *)DATA0},{1, 1, (void*)DATA1},{1, 1, (void*)DATA2},
+        {1, 1, (void *)DATA3},{1, 1, (void*)DATA4},{1, 1, (void*)DATA5},
+        {1, 1, (void *)DATA6},{1, 1, (void*)DATA7},{1, 1, (void*)DATA8},
+        {1, 1, (void *)DATA9},{1, 1, (void*)DATA10}
+};
+#define NUMS ((bignum*)NUMSC)
 /**
  * Initialize a bignum structure. This is the only way to safely create a bignum
  * and should be called where-ever one is declared. (We realloc the memory in all
@@ -134,7 +109,7 @@ void bignum_fromstring(bignum* b, char* string) {
 /**
  * Load a bignum from an unsigned integer.
  */
-void bignum_fromint(bignum* b, unsigned int num) {
+void bignum_fromint(bignum* b, word num) {
 	b->length = 1;
 	if(b->capacity < b->length) {
 		b->capacity = b->length;
@@ -290,7 +265,8 @@ void bignum_isubtract(bignum* source, bignum* sub) {
  */
 void bignum_subtract(bignum* result, bignum* b1, bignum* b2) {
 	int length = 0, i;
-	word carry = 0, diff, temp;
+	word carry = 0, diff;
+	dword temp;
 	if(b1->length > result->capacity) {
 		result->capacity = b1->length;
 		result->data = realloc(result->data, result->capacity * sizeof(word));
@@ -298,7 +274,7 @@ void bignum_subtract(bignum* result, bignum* b1, bignum* b2) {
 	for(i = 0; i < b1->length; i++) {
 		temp = carry;
 		if(i < b2->length) temp = temp + b2->data[i]; /* Auto wrapped mod RADIX */
-		diff = b1->data[i] - temp;
+		diff = b1->data[i] - (word)temp;
 		if(temp > b1->data[i]) carry = 1;
 		else carry = 0;
 		result->data[i] = diff;
@@ -326,7 +302,7 @@ void bignum_imultiply(bignum* source, bignum* mult) {
 void bignum_multiply(bignum* result, bignum* b1, bignum* b2) {
 	int i, j, k;
 	word carry, temp;
-	unsigned long long int prod; /* Long for intermediate product... this is not portable and should probably be changed */
+	dword prod; /* Long for intermediate product... this is not portable and should probably be changed */
 	if(b1->length + b2->length > result->capacity) {
 		result->capacity = b1->length + b2->length;
 		result->data = realloc(result->data, result->capacity * sizeof(word));
@@ -335,7 +311,7 @@ void bignum_multiply(bignum* result, bignum* b1, bignum* b2) {
 	
 	for(i = 0; i < b1->length; i++) {
 		for(j = 0; j < b2->length; j++) {
-			prod = (b1->data[i] * (unsigned long long int)b2->data[j]) + (unsigned long long int)(result->data[i+j]); /* This should not overflow... */
+			prod = (b1->data[i] * (dword)b2->data[j]) + (dword)(result->data[i+j]); /* This should not overflow... */
 			carry = (word)(prod / RADIX);
 			
 			/* Add carry to the next word over, but this may cause further overflow.. propogate */
@@ -348,7 +324,7 @@ void bignum_multiply(bignum* result, bignum* b1, bignum* b2) {
 				k++;
 			}
 			
-			prod = (result->data[i+j] + b1->data[i] * (unsigned long long int)b2->data[j]) % RADIX; /* Again, should not overflow... */
+			prod = (result->data[i+j] + b1->data[i] * (dword)b2->data[j]) % RADIX; /* Again, should not overflow... */
 			result->data[i+j] = prod; /* Add */
 		}
 	}
@@ -400,6 +376,25 @@ void bignum_imodulate(bignum* source, bignum* modulus) {
 	bignum_deinit(r);
 }
 
+typedef union {
+    struct {
+        dword l;
+        word h;
+    }dword;
+    word word[3];
+} qword;
+
+static void q_mul_w(qword *a, word b) {
+    dword t = a->word[0] * b;
+    a->word[0] = t;
+    t = (t / RADIX) + a->word[1];
+    t *= b;
+    a->word[1] = t;
+    t = (t / RADIX) + a->word[2];
+    t *= b;
+    a->word[2] = t;
+}
+
 /**
  * Divide two bignums by naive long division, producing both a quotient and remainder.
  * quotient = floor(b1/b2), remainder = b1 - quotient * b2. If b1 < b2 the quotient is
@@ -409,10 +404,11 @@ void bignum_divide(bignum* quotient, bignum* remainder, bignum* b1, bignum* b2) 
 	bignum *b2copy = bignum_init(), *b1copy = bignum_init();
 	bignum *temp = bignum_init(), *temp2 = bignum_init(), *temp3 = bignum_init();
 	bignum* quottemp = bignum_init();
+    qword g;
 	word carry = 0;
 	int n, m, i, j, length = 0;
-	unsigned long long factor = 1;
-	unsigned long long gquot, gtemp, grem;
+	dword factor = 1;
+	dword gquot, gtemp, grem;
 	if(bignum_less(b1, b2)) { /* Trivial case, b1/b2 = 0 iff b1 < b2. */
 		quotient->length = 0;
 		bignum_copy(b1, remainder);
@@ -471,11 +467,25 @@ void bignum_divide(bignum* quotient, bignum* remainder, bignum* b1, bignum* b2) 
 		for(i = n - m - 1; i >= 0; i--) {
 			gtemp = RADIX * b1copy->data[i + m] + b1copy->data[i + m - 1];
 			gquot = gtemp / b2copy->data[m - 1];
-			if(gquot >= RADIX) gquot = UINT_MAX;
 			grem = gtemp % b2copy->data[m - 1];
-			while(grem < RADIX && gquot * b2copy->data[m - 2] > RADIX * grem + b1copy->data[i + m - 2]) { /* Should not overflow... ? */
-				gquot--;
-				grem += b2copy->data[m - 1];
+			if(gquot >= RADIX) {
+                g.dword.l = gquot;
+                g.dword.h = 0;
+                while (grem < RADIX) {
+                    q_mul_w(&g, b2copy->data[m - 2]);
+                    if (grem > g.dword.h)
+                        break;
+                    if (grem == g.dword.h
+                            && b1copy->data[i + m - 2] >= g.dword.l)
+                        break;
+                    gquot--;
+                    grem += b2copy->data[m - 1];
+                }
+			} else {
+				while(grem < RADIX && gquot * b2copy->data[m - 2] > RADIX * grem + b1copy->data[i + m - 2]) { /* Should not overflow... ? */
+					gquot--;
+					grem += b2copy->data[m - 1];
+				}
 			}
 			quottemp->data[0] = gquot % RADIX;
 			quottemp->data[1] = (gquot / RADIX);
