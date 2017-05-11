@@ -18,7 +18,7 @@
 #define BIGNUM_CAPACITY 20
 
 /* Radix and halfradix. These should be changed if the limb/word type changes */
-#define RADIX       (BN_UINT_MAX + 1UL)
+#define RADIX       (((dword)BN_UINT_MAX) + 1UL)
 #define HALFRADIX   (RADIX / 2)
 
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
