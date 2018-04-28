@@ -18,7 +18,7 @@
 #define BIGNUM_CAPACITY 20
 
 /* Radix and halfradix. These should be changed if the limb/word type changes */
-#define RADIX       (BN_UINT_MAX + 1UL)
+#define RADIX       (((dword)BN_UINT_MAX) + 1UL)
 #define HALFRADIX   (RADIX / 2)
 
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -28,18 +28,18 @@
  * Save some frequently used bigintegers (0 - 10) so they do not need to be repeatedly
  * created. Used as, NUMS[5] = bignum("5"), etc..
  */
-const word DATA0[1] = {0};
-const word DATA1[1] = {1};
-const word DATA2[1] = {2};
-const word DATA3[1] = {3};
-const word DATA4[1] = {4};
-const word DATA5[1] = {5};
-const word DATA6[1] = {6};
-const word DATA7[1] = {7};
-const word DATA8[1] = {8};
-const word DATA9[1] = {9};
-const word DATA10[1] = {10};
-const bignum NUMSC[11] = {
+static const word DATA0[1] = {0};
+static const word DATA1[1] = {1};
+static const word DATA2[1] = {2};
+static const word DATA3[1] = {3};
+static const word DATA4[1] = {4};
+static const word DATA5[1] = {5};
+static const word DATA6[1] = {6};
+static const word DATA7[1] = {7};
+static const word DATA8[1] = {8};
+static const word DATA9[1] = {9};
+static const word DATA10[1] = {10};
+static const bignum NUMSC[11] = {
         {1, 1, (void *)DATA0},{1, 1, (void*)DATA1},{1, 1, (void*)DATA2},
         {1, 1, (void *)DATA3},{1, 1, (void*)DATA4},{1, 1, (void*)DATA5},
         {1, 1, (void *)DATA6},{1, 1, (void*)DATA7},{1, 1, (void*)DATA8},
@@ -71,21 +71,21 @@ void bignum_deinit(bignum* b) {
 /**
  * Check if the given bignum is zero
  */
-int bignum_iszero(bignum* b) {
+int bignum_iszero(const bignum* b) {
 	return b->length == 0 || (b->length == 1 && b->data[0] == 0);
 }
 
 /**
  * Check if the given bignum is nonzero.
  */
-int bignum_isnonzero(bignum* b) {
+int bignum_isnonzero(const bignum* b) {
 	return !bignum_iszero(b);
 }
 
 /**
  * Copy from source bignum into destination bignum.
  */
-void bignum_copy(bignum* source, bignum* dest) {
+void bignum_copy(const bignum* source, bignum* dest) {
 	dest->length = source->length;
 	if(source->capacity > dest->capacity) {
 		dest->capacity = source->capacity;
@@ -97,7 +97,7 @@ void bignum_copy(bignum* source, bignum* dest) {
 /**
  * Load a bignum from a base 10 string. Only pure numeric strings will work.
  */
-void bignum_fromstring(bignum* b, char* string) {
+void bignum_fromstring(bignum* b, const char *string) {
 	int i, len = 0;
 	while(string[len] != '\0') len++; /* Find string length */
 	for(i = 0; i < len; i++) {
@@ -124,7 +124,7 @@ void bignum_fromint(bignum* b, word num) {
  * 10^9 for example, then doing single precision arithmetic to retrieve the
  * 9 remainders
  */
-void bignum_print(bignum* b) {
+void bignum_print(const bignum *b) {
 	int cap = 100, len = 0, i;
 	char* buffer = malloc(cap * sizeof(char));
 	bignum *copy = bignum_init(), *remainder = bignum_init();
@@ -149,7 +149,7 @@ void bignum_print(bignum* b) {
 /**
  * Check if two bignums are equal.
  */
-int bignum_equal(bignum* b1, bignum* b2) {
+int bignum_equal(const bignum *b1, const bignum *b2) {
 	int i;
 	if(bignum_iszero(b1) && bignum_iszero(b2)) return 1;
 	else if(bignum_iszero(b1)) return 0;
@@ -164,7 +164,7 @@ int bignum_equal(bignum* b1, bignum* b2) {
 /**
  * Check if bignum b1 is greater than b2
  */
-int bignum_greater(bignum* b1, bignum* b2) {
+int bignum_greater(const bignum *b1, const bignum *b2) {
 	int i;
 	if(bignum_iszero(b1) && bignum_iszero(b2)) return 0;
 	else if(bignum_iszero(b1)) return 0;
@@ -179,7 +179,7 @@ int bignum_greater(bignum* b1, bignum* b2) {
 /**
  * Check if bignum b1 is less than b2
  */
-int bignum_less(bignum* b1, bignum* b2) {
+int bignum_less(const bignum *b1, const bignum *b2) {
 	int i;
 	if(bignum_iszero(b1) && bignum_iszero(b2)) return 0;
 	else if(bignum_iszero(b1)) return 1;
@@ -194,21 +194,21 @@ int bignum_less(bignum* b1, bignum* b2) {
 /**
  * Check if bignum b1 is greater than or equal to b2
  */
-int bignum_geq(bignum* b1, bignum* b2) {
+int bignum_geq(const bignum *b1, const bignum *b2) {
 	return !bignum_less(b1, b2);
 }
 
 /**
  * Check if bignum b1 is less than or equal to b2
  */
-int bignum_leq(bignum* b1, bignum* b2) {
+int bignum_leq(const bignum* b1, const bignum* b2) {
 	return !bignum_greater(b1, b2);
 }
 
 /**
  * Perform an in place add into the source bignum. That is source += add
  */
-void bignum_iadd(bignum* source, bignum* add) {
+void bignum_iadd(bignum* source, const bignum* add) {
 	bignum* temp = bignum_init();
 	bignum_add(temp, source, add);
 	bignum_copy(temp, source);
@@ -218,7 +218,7 @@ void bignum_iadd(bignum* source, bignum* add) {
 /**
  * Add two bignums by the add with carry method. result = b1 + b2
  */
-void bignum_add(bignum* result, bignum* b1, bignum* b2) {
+void bignum_add(bignum* result, const bignum* b1, const bignum* b2) {
 	word sum, carry = 0;
 	int i, n = MAX(b1->length, b2->length);
 	if(n + 1 > result->capacity) {
@@ -252,7 +252,7 @@ void bignum_add(bignum* result, bignum* b1, bignum* b2) {
 /**
  * Perform an in place subtract from the source bignum. That is, source -= sub
  */
-void bignum_isubtract(bignum* source, bignum* sub) {
+void bignum_isubtract(bignum* source, const bignum* sub) {
 	bignum* temp = bignum_init();
 	bignum_subtract(temp, source, sub);
 	bignum_copy(temp, source);
@@ -263,7 +263,7 @@ void bignum_isubtract(bignum* source, bignum* sub) {
  * Subtract bignum b2 from b1. result = b1 - b2. The result is undefined if b2 > b1.
  * This uses the basic subtract with carry method
  */
-void bignum_subtract(bignum* result, bignum* b1, bignum* b2) {
+void bignum_subtract(bignum* result, const bignum* b1, const bignum* b2) {
 	int length = 0, i;
 	word carry = 0, diff;
 	dword temp;
@@ -286,7 +286,7 @@ void bignum_subtract(bignum* result, bignum* b1, bignum* b2) {
 /**
  * Perform an in place multiplication into the source bignum. That is source *= mult
  */
-void bignum_imultiply(bignum* source, bignum* mult) {
+void bignum_imultiply(bignum* source, const bignum* mult) {
 	bignum* temp = bignum_init();
 	bignum_multiply(temp, source, mult);
 	bignum_copy(temp, source);
@@ -299,7 +299,7 @@ void bignum_imultiply(bignum* source, bignum* mult) {
  * method for reasonable number of digits. There are some improvments to be made here,
  * especially for squaring which can cut out half of the operations.
  */
-void bignum_multiply(bignum* result, bignum* b1, bignum* b2) {
+void bignum_multiply(bignum* result, const bignum *b1, const bignum *b2) {
 	int i, j, k;
 	word carry, temp;
 	dword prod; /* Long for intermediate product... this is not portable and should probably be changed */
@@ -335,7 +335,7 @@ void bignum_multiply(bignum* result, bignum* b1, bignum* b2) {
 /**
  * Perform an in place divide of source. source = source/div.
  */
-void bignum_idivide(bignum *source, bignum *div) {
+void bignum_idivide(bignum *source, const bignum *div) {
 	bignum *q = bignum_init(), *r = bignum_init();
 	bignum_divide(q, r, source, div);
 	bignum_copy(q, source);
@@ -347,7 +347,7 @@ void bignum_idivide(bignum *source, bignum *div) {
  * Perform an in place divide of source, also producing a remainder.
  * source = source/div and remainder = source - source/div.
  */
-void bignum_idivider(bignum* source, bignum* div, bignum* remainder) {
+void bignum_idivider(bignum* source, const bignum *div, const bignum *remainder) {
 	bignum *q = bignum_init(), *r = bignum_init();
 	bignum_divide(q, r, source, div);
 	bignum_copy(q, source);
@@ -359,7 +359,7 @@ void bignum_idivider(bignum* source, bignum* div, bignum* remainder) {
 /**
  * Calculate the remainder when source is divided by div.
  */
-void bignum_remainder(bignum* source, bignum *div, bignum* remainder) {
+void bignum_remainder(const bignum *source, const bignum *div, bignum* remainder) {
 	bignum *q = bignum_init();
 	bignum_divide(q, remainder, source, div);
 	bignum_deinit(q);
@@ -368,7 +368,7 @@ void bignum_remainder(bignum* source, bignum *div, bignum* remainder) {
 /**
  * Modulate the source by the modulus. source = source % modulus
  */
-void bignum_imodulate(bignum* source, bignum* modulus) {
+void bignum_imodulate(bignum *source, const bignum* modulus) {
 	bignum *q = bignum_init(), *r = bignum_init();
 	bignum_divide(q, r, source, modulus);
 	bignum_copy(r, source);
@@ -400,7 +400,7 @@ static void q_mul_w(qword *a, word b) {
  * quotient = floor(b1/b2), remainder = b1 - quotient * b2. If b1 < b2 the quotient is
  * trivially 0 and remainder is b2. 
  */
-void bignum_divide(bignum* quotient, bignum* remainder, bignum* b1, bignum* b2) {
+void bignum_divide(bignum* quotient, bignum* remainder, const bignum *b1, const bignum *b2) {
 	bignum *b2copy = bignum_init(), *b1copy = bignum_init();
 	bignum *temp = bignum_init(), *temp2 = bignum_init(), *temp3 = bignum_init();
 	bignum* quottemp = bignum_init();
@@ -538,7 +538,7 @@ void bignum_divide(bignum* quotient, bignum* remainder, bignum* b1, bignum* b2) 
  * Perform modular exponentiation by repeated squaring. This will compute
  * result = base^exponent mod modulus
  */
-void bignum_modpow(bignum* base, bignum* exponent, bignum* modulus, bignum* result) {
+void bignum_modpow(const bignum *base, const bignum *exponent, const bignum *modulus, bignum* result) {
 	bignum *a = bignum_init(), *b = bignum_init(), *c = bignum_init();
 	bignum *discard = bignum_init(), *remainder = bignum_init();
 	bignum_copy(base, a);
@@ -565,7 +565,7 @@ void bignum_modpow(bignum* base, bignum* exponent, bignum* modulus, bignum* resu
 /**
  * Compute the gcd of two bignums. result = gcd(b1, b2)
  */
-void bignum_gcd(bignum* b1, bignum* b2, bignum* result) {
+void bignum_gcd(const bignum *b1, const bignum *b2, bignum* result) {
 	bignum *a = bignum_init(), *b = bignum_init(), *remainder = bignum_init();
 	bignum *temp = bignum_init(), *discard = bignum_init();
 	bignum_copy(b1, a);
@@ -587,7 +587,7 @@ void bignum_gcd(bignum* b1, bignum* b2, bignum* result) {
 /**
  * Compute the inverse of a mod m. Or, result = a^-1 mod m.
  */
-void bignum_inverse(bignum* a, bignum* m, bignum* result) {
+void bignum_inverse(const bignum *a, const bignum *m, bignum* result) {
 	bignum *remprev = bignum_init(), *rem = bignum_init();
 	bignum *auxprev = bignum_init(), *aux = bignum_init();
 	bignum *rcur = bignum_init(), *qcur = bignum_init(), *acur = bignum_init();
@@ -668,7 +668,7 @@ int bignum_jacobi(bignum* ac, bignum* nc) {
 /**
  * Check whether a is a Euler witness for n. That is, if a^(n - 1)/2 != Ja(a, n) mod n
  */
-int solovayPrime(int a, bignum* n) {
+int solovayPrime(int a, const bignum *n) {
 	bignum *ab = bignum_init(), *res = bignum_init(), *pow = bignum_init();
 	bignum *modpow = bignum_init();
 	int x, result;
@@ -693,7 +693,7 @@ int solovayPrime(int a, bignum* n) {
 /**
  * Test if n is probably prime, by repeatedly using the Solovay-Strassen primality test.
  */
-int probablePrime(bignum* n, int k) {
+int probablePrime(const bignum *n, int k) {
 	if(bignum_equal(n, &NUMS[2])) return 1;
 	else if(n->data[0] % 2 == 0 || bignum_equal(n, &NUMS[1])) return 0;
 	while(k-- > 0) {

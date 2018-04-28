@@ -58,22 +58,22 @@ void bignum_deinit(bignum* b);
 /**
  * Check if the given bignum is zero
  */
-int bignum_iszero(bignum* b);
+int bignum_iszero(const bignum *b);
 
 /**
  * Check if the given bignum is nonzero.
  */
-int bignum_isnonzero(bignum* b);
+int bignum_isnonzero(const bignum* b);
 
 /**
  * Copy from source bignum into destination bignum.
  */
-void bignum_copy(bignum* source, bignum* dest);
+void bignum_copy(const bignum* source, bignum* dest);
 
 /**
  * Load a bignum from a base 10 string. Only pure numeric strings will work.
  */
-void bignum_fromstring(bignum* b, char* string);
+void bignum_fromstring(bignum* b, const char* string);
 
 /**
  * Load a bignum from an unsigned integer.
@@ -86,57 +86,57 @@ void bignum_fromint(bignum* b, word num);
  * 10^9 for example, then doing single precision arithmetic to retrieve the
  * 9 remainders
  */
-void bignum_print(bignum* b);
+void bignum_print(const bignum* b);
 
 /**
  * Check if two bignums are equal.
  */
-int bignum_equal(bignum* b1, bignum* b2);
+int bignum_equal(const bignum* b1, const bignum* b2);
 
 /**
  * Check if bignum b1 is greater than b2
  */
-int bignum_greater(bignum* b1, bignum* b2);
+int bignum_greater(const bignum* b1, const bignum* b2);
 
 /**
  * Check if bignum b1 is less than b2
  */
-int bignum_less(bignum* b1, bignum* b2);
+int bignum_less(const bignum* b1, const bignum* b2);
 
 /**
  * Check if bignum b1 is greater than or equal to b2
  */
-int bignum_geq(bignum* b1, bignum* b2);
+int bignum_geq(const bignum* b1, const bignum* b2);
 
 /**
  * Check if bignum b1 is less than or equal to b2
  */
-int bignum_leq(bignum* b1, bignum* b2);
+int bignum_leq(const bignum* b1, const bignum* b2);
 
 /**
  * Perform an in place add into the source bignum. That is source += add
  */
-void bignum_iadd(bignum* source, bignum* add);
+void bignum_iadd(bignum* source, const bignum* add);
 
 /**
  * Add two bignums by the add with carry method. result = b1 + b2
  */
-void bignum_add(bignum* result, bignum* b1, bignum* b2);
+void bignum_add(bignum* result, const bignum* b1, const bignum* b2);
 /**
  * Perform an in place subtract from the source bignum. That is, source -= sub
  */
-void bignum_isubtract(bignum* source, bignum* sub);
+void bignum_isubtract(bignum* source, const bignum* sub);
 
 /**
  * Subtract bignum b2 from b1. result = b1 - b2. The result is undefined if b2 > b1.
  * This uses the basic subtract with carry method
  */
-void bignum_subtract(bignum* result, bignum* b1, bignum* b2);
+void bignum_subtract(bignum* result, const bignum* b1, const bignum* b2);
 
 /**
  * Perform an in place multiplication into the source bignum. That is source *= mult
  */
-void bignum_imultiply(bignum* source, bignum* mult);
+void bignum_imultiply(bignum* source, const bignum* mult);
 
 /**
  * Multiply two bignums by the naive school method. result = b1 * b2. I have experimented
@@ -144,51 +144,51 @@ void bignum_imultiply(bignum* source, bignum* mult);
  * method for reasonable number of digits. There are some improvments to be made here,
  * especially for squaring which can cut out half of the operations.
  */
-void bignum_multiply(bignum* result, bignum* b1, bignum* b2);
+void bignum_multiply(bignum* result, const bignum* b1, const bignum* b2);
 
 /**
  * Perform an in place divide of source. source = source/div.
  */
-void bignum_idivide(bignum *source, bignum *div);
+void bignum_idivide(bignum *source, const bignum *div);
 
 /**
  * Perform an in place divide of source, also producing a remainder.
  * source = source/div and remainder = source - source/div.
  */
-void bignum_idivider(bignum* source, bignum* div, bignum* remainder);
+void bignum_idivider(bignum* source, const bignum* div, const bignum* remainder);
 
 /**
  * Calculate the remainder when source is divided by div.
  */
-void bignum_remainder(bignum* source, bignum *div, bignum* remainder);
+void bignum_remainder(const bignum* source, const bignum *div, bignum* remainder);
 
 /**
  * Modulate the source by the modulus. source = source % modulus
  */
-void bignum_imodulate(bignum* source, bignum* modulus);
+void bignum_imodulate(bignum *source, const bignum *modulus);
 
 /**
  * Divide two bignums by naive long division, producing both a quotient and remainder.
  * quotient = floor(b1/b2), remainder = b1 - quotient * b2. If b1 < b2 the quotient is
  * trivially 0 and remainder is b2.
  */
-void bignum_divide(bignum* quotient, bignum* remainder, bignum* b1, bignum* b2);
+void bignum_divide(bignum* quotient, bignum* remainder, const bignum* b1, const bignum* b2);
 
 /**
  * Perform modular exponentiation by repeated squaring. This will compute
  * result = base^exponent mod modulus
  */
-void bignum_modpow(bignum* base, bignum* exponent, bignum* modulus, bignum* result);
+void bignum_modpow(const bignum* base, const bignum* exponent, const bignum* modulus, bignum* result);
 
 /**
  * Compute the gcd of two bignums. result = gcd(b1, b2)
  */
-void bignum_gcd(bignum* b1, bignum* b2, bignum* result);
+void bignum_gcd(const bignum* b1, const bignum* b2, bignum* result);
 
 /**
  * Compute the inverse of a mod m. Or, result = a^-1 mod m.
  */
-void bignum_inverse(bignum* a, bignum* m, bignum* result);
+void bignum_inverse(const bignum* a, const bignum* m, bignum* result);
 /**
  * Compute the jacobi symbol, J(ac, nc).
  */
@@ -197,12 +197,12 @@ int bignum_jacobi(bignum* ac, bignum* nc);
 /**
  * Check whether a is a Euler witness for n. That is, if a^(n - 1)/2 != Ja(a, n) mod n
  */
-int solovayPrime(int a, bignum* n);
+int solovayPrime(int a, const bignum* n);
 
 /**
  * Test if n is probably prime, by repeatedly using the Solovay-Strassen primality test.
  */
-int probablePrime(bignum* n, int k);
+int probablePrime(const bignum* n, int k);
 
 /**
  * Generate a random prime number, with a specified number of digits.
